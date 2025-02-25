@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "划词翻译",
+  "version": "1.0",
+  "description": "选择文本进行翻译的Chrome扩展",
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
+} 

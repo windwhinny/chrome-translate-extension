@@ -1,0 +1,37 @@
+.translate-button {
+    position: absolute;
+    background: #4285f4;
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 12px;
+    z-index: 10000;
+  }
+  
+  .translate-popup {
+    position: absolute;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 10px;
+    max-width: 300px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    z-index: 10001;
+  }
+  
+  .loading {
+    color: #666;
+  }
+  
+  .error {
+    color: red;
+  }
+  
+  .content {
+    white-space: pre-wrap;
+  }
