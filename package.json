@@ -6,9 +6,6 @@
     "watch": "webpack --config webpack.config.js --watch"
   },
   "devDependencies": {
-    "@babel/core": "^7.23.7",
-    "@babel/preset-env": "^7.23.8",
-    "babel-loader": "^9.1.3",
     "copy-webpack-plugin": "^12.0.2",
     "css-loader": "^6.9.1",
     "dotenv-webpack": "^8.0.1",
@@ -16,5 +13,11 @@
     "style-loader": "^3.3.4",
     "webpack": "^5.89.0",
     "webpack-cli": "^5.1.4"
+  },
+  "dependencies": {
+    "@types/chrome": "^0.0.306",
+    "@types/css-modules": "^1.0.5",
+    "ts-loader": "^9.5.2",
+    "typescript": "^5.7.3"
   }
-} 
+}

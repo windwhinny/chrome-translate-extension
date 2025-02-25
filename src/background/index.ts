@@ -1,12 +1,10 @@
 import { ENV } from '../config/keys';
 
 // ... 其他代码保持不变 ...
-const prompt = (word) => `
+const wordPrompt = `
 你是一个专业的英语词典助手，负责提供精确的单词信息。当用户输入查询单词时，请按照以下规范返回信息：
-首先接收查询单词：
-<查询单词>
-${word}
-</查询单词>
+首先接收用户输入的{{查询单词}}：
+
 请按照以下顺序提供信息：
 1. 音标：使用国际音标(IPA)标注英式/美式发音，不包含音标开始和结束符号 []
 - 若存在多个发音变体，优先列出主要发音
@@ -19,7 +17,7 @@ ${word}
 - 为每个词性提供2-3个例句
 - 包含对应中文翻译
 必须遵守以下规则：
-- 若单词不存在，回复："未找到'${word}'的词典记录，请确认拼写"
+- 若单词不存在，回复："未找到'{{查询单词}}'的词典记录，请确认拼写"
 - 例句必须真实存在，不得自行编造
 请首先确认单词有效性，严格按以下结构输出 JSON:
 {
@@ -43,10 +41,30 @@ chinese: string
 }
 `
 
+type Translation = {
+  // 音标
+  phonetic: string,
+  // 音标类型：美式、英式
+  phoneticType: string,
+  explanations: {
+  // 词性
+  partOfSpeech: string
+  //释义
+  explanation: string
+  }[],
+  // 例句
+  examples: {
+  // 英文例句
+  english: string,
+  // 中文翻译
+  chinese: string
+  }[]
+}
 
+export type TranslateResult = Awaited<ReturnType<typeof handleTranslate>>;
 
 // 处理翻译请求
-async function handleTranslate(text, isWord) {
+async function handleTranslate(text: string, isWord: boolean) {
   try {
     const response = await fetch('https://ark.cn-beijing.volces.com/api/v3/chat/completions', {
       method: 'POST',
@@ -59,7 +77,7 @@ async function handleTranslate(text, isWord) {
         messages: [{
           role: "system",
           content: isWord ? 
-            prompt(text):
+            wordPrompt:
             "你是一个翻译助手。请直接返回翻译结果，不要包含任何解释或额外信息。"
         }, {
           role: "user",
@@ -77,7 +95,14 @@ async function handleTranslate(text, isWord) {
     const content = data.choices[0].message.content;
 
     return {
-        translation: isWord ? JSON.parse(content) : content,
+        isWord,
+        translation: isWord ? JSON.parse(content) as Translation : content as string,
+    } as {
+      isWord: true,
+      translation: Translation,
+    } | {
+      isWord: false,
+      translation: string,
     };
   } catch (error) {
     console.error('Translation error:', error);
@@ -92,7 +117,7 @@ function uuid() {
   });
 }
 
-async function handleTTS(text) {
+async function handleTTS(text: string) {
   const response = await fetch('https://openspeech.bytedance.com/api/v1/tts', {
     method: 'POST',
     headers: {

@@ -1,34 +1,36 @@
 const path = require('path');
 const CopyPlugin = require('copy-webpack-plugin');
-const HtmlWebpackPlugin = require('html-webpack-plugin');
 const Dotenv = require('dotenv-webpack');
 
 module.exports = {
   mode: 'production',
   entry: {
-    background: './src/background/index.js',
-    content: './src/content/index.js',
+    background: './src/background/index.ts',
+    content: './src/content/index.ts',
   },
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: '[name].js',
     clean: true
   },
+  resolve: {
+    extensions: ['.ts', '.js']
+  },
   module: {
     rules: [
       {
-        test: /\.js$/,
-        exclude: /node_modules/,
-        use: {
-          loader: 'babel-loader',
-          options: {
-            presets: ['@babel/preset-env']
-          }
-        }
+        test: /\.(t|j)s$/,
+        use: 'ts-loader',
+        exclude: /node_modules/
       },
       {
         test: /\.css$/,
-        use: ['style-loader', 'css-loader']
+        use: ['style-loader', {
+          loader: 'css-loader',
+          options: {
+            modules: true,
+          },
+        }]
       }
     ]
   },
@@ -50,5 +52,8 @@ module.exports = {
         }
       ]
     }),
-  ]
+  ],
+  optimization: {
+    minimize: false // 关闭代码压缩
+  }
 } 
