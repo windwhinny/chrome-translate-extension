@@ -44,8 +44,6 @@ chinese: string
 `
 
 const emotionMap = {
-  "客服": "customer_service",
-  "专业": "professional",
   "严肃": "serious",
   "旁白-舒缓": "narrator",
   "旁白-沉浸": "narrator_immersive",
@@ -75,13 +73,14 @@ const emotionMap = {
   }
 
 const translationPrompt = `
-将下面语句翻译成中文。
-给出原文本的{语种}，语种可以为： en/zh/jp/kr/fr。
-根据原文内容，判断原文的{语气}，语气可以为：客服、专业、严肃、旁白-舒缓、旁白-沉浸、安慰鼓励、撒娇、可爱元气、绿茶、傲娇、娇媚、讲故事、情感电台、瑜伽、广告、助手、自然对话、愉悦、抱歉、嗔怪、开心、悲伤、愤怒、害怕、厌恶、惊讶、哭腔、平和
+将下面语句翻译成中文/英文。
+给出原始文本的{语种}，语种可以为： en/zh/jp/kr/fr。
+根据原文内容，判断原文的{语气}，语气可以为：严肃、旁白-舒缓、旁白-沉浸、安慰鼓励、撒娇、可爱元气、绿茶、傲娇、娇媚、讲故事、情感电台、瑜伽、广告、助手、自然对话、愉悦、抱歉、嗔怪、开心、悲伤、愤怒、害怕、厌恶、惊讶、哭腔、平和
 
 将结果严格按照以下JSON格式输出：
 {
- "text": "{翻译结果}",
+"origin": "{原始文本}",
+"text": "{翻译结果}",
 "language": "{语种}",
 "emotion": "{语气}"
 }`
@@ -138,6 +137,15 @@ function uuid() {
 
 export type TTSResule = Awaited<ReturnType<typeof handleTTS>>;
 async function handleTTS(text: string, language?: string, emotion?: string) {
+  let voice_type = "BV700_V2_streaming";
+
+  if (language == 'zh'){
+    voice_type = "BV700_V2_streaming";
+  } else if (language == 'en') {
+    voice_type = 'BV138_streaming';
+  } else if (language = 'jp') {
+    voice_type = 'BV421_streaming';
+  }
   const response = await fetch('https://openspeech.bytedance.com/api/v1/tts', {
     method: 'POST',
     headers: {
@@ -154,9 +162,9 @@ async function handleTTS(text: string, language?: string, emotion?: string) {
             uid: "1234"
         },
         audio: {
-            voice_type: "BV700_V2_streaming",
+            voice_type,
             encoding: 'mp3',
-            // language,
+            language,
             emotion,
         },
         request: {
