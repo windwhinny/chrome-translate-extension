@@ -1,4 +1,23 @@
-import { ENV } from '../config/keys';
+/// <reference types="vite/client" />
+import { registorBridgeFunction } from '../bridge';
+
+export type Frontend = {
+  words: {
+    word: string,
+    start_time: number,
+    end_time: number,
+    unit_type: 'text'| 'mark',
+  }[]
+}
+
+type TTSResponse = {
+  data: string,
+  addition: {
+    duration: string,
+    first_pkg: string, 
+    frontend: string,
+  }
+}
 
 // ... 其他代码保持不变 ...
 const wordPrompt = `
@@ -64,16 +83,17 @@ type Translation = {
 export type TranslateResult = Awaited<ReturnType<typeof handleTranslate>>;
 
 // 处理翻译请求
-async function handleTranslate(text: string, isWord: boolean) {
+async function handleTranslate(text: string) {
+  const isWord = /^[a-zA-Z]+$/.test(text);
   try {
     const response = await fetch('https://ark.cn-beijing.volces.com/api/v3/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${ENV.ARK_TOKEN}`
+        'Authorization': `Bearer ${import.meta.env.VITE_ARK_TOKEN}`
       },
       body: JSON.stringify({
-        model: ENV.ARK_MODEL,
+        model: import.meta.env.VITE_ARK_MODEL,
         messages: [{
           role: "system",
           content: isWord ? 
@@ -94,7 +114,7 @@ async function handleTranslate(text: string, isWord: boolean) {
 
     const content = data.choices[0].message.content;
 
-    return {
+    const r =  {
         isWord,
         translation: isWord ? JSON.parse(content) as Translation : content as string,
     } as {
@@ -104,6 +124,7 @@ async function handleTranslate(text: string, isWord: boolean) {
       isWord: false,
       translation: string,
     };
+    return r;
   } catch (error) {
     console.error('Translation error:', error);
     throw error;
@@ -117,16 +138,17 @@ function uuid() {
   });
 }
 
+export type TTSResule = Awaited<ReturnType<typeof handleTTS>>;
 async function handleTTS(text: string) {
   const response = await fetch('https://openspeech.bytedance.com/api/v1/tts', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer;${ENV.VOLC_TOKEN}`,
+      'Authorization': `Bearer;${import.meta.env.VITE_VOLC_TOKEN}`,
     },
     body: JSON.stringify({
         app: {
-            appid: ENV.VOLC_APPID,
+            appid: import.meta.env.VITE_VOLC_APPID,
             token: "1234",
             cluster: "volcano_tts",
         },
@@ -135,37 +157,29 @@ async function handleTTS(text: string) {
         },
         audio: {
             voice_type: "BV421_streaming",
-            encoding: 'mp3'
+            encoding: 'mp3',
         },
         request: {
             reqid: uuid(),
             text: text,
             operation: "query",
+            with_timestamp: 1,
         }
     }),
   });
 
-  const data = await response.json();
+  const data = await response.json() as TTSResponse;
 
-  return `data:audio/mp3;base64,${data.data}`;
+  return {
+    audio: `data:audio/mp3;base64,${data.data}`,
+    duration: Number(data.addition.duration),
+    frontend: JSON.parse(data.addition.frontend) as Frontend,
+  }
 }
 
-// 监听扩展安装事件
-chrome.runtime.onInstalled.addListener(() => {
-  console.log('划词翻译扩展已安装');
-});
+const funcs = registorBridgeFunction({
+  handleTTS,
+  handleTranslate,
+} as const);
 
-// 处理来自 content script 的消息
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.type === 'translate') {
-    handleTranslate(request.text, request.isWord)
-      .then(response => sendResponse({ success: true, data: response }))
-      .catch(error => sendResponse({ success: false, error: error.message }));
-    return true; // 保持消息通道开放，等待异步响应
-  } else if (request.type === 'tts') {
-    handleTTS(request.text)
-      .then(response => sendResponse({ success: true, data: response }))
-      .catch(error => sendResponse({ success: false, error: error.message }));
-    return true; // 保持消息通道开放，等待异步响应
-  }
-});
+export type BridgeFunctions = typeof funcs;
