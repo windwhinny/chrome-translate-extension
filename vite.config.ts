@@ -5,7 +5,9 @@ import webExtension from "vite-plugin-web-extension";
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [svelte(), webExtension()],
+  plugins: [svelte({
+    emitCss: false,
+  }), webExtension()],
   build: {
     sourcemap: true,
   }

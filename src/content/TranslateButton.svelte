@@ -28,6 +28,7 @@
 
   const handleMouseUp = (e: MouseEvent) => {
     selectedText = window.getSelection()?.toString().trim();
+    if (intend) return;
     if (selectedText) {
       show = true;
       pos = {
@@ -44,13 +45,13 @@
   };
 
   const onClick = () => {
-    if (!selectedText || !pos) return;
+    if (!selectedText || !pos || intend) return;
     intend = {
       text: selectedText,
       clickPos: pos,
     };
     show = false;
-  }
+  };
 </script>
 <svelte:document onmouseup={handleMouseUp} />
 <button
@@ -66,6 +67,7 @@
 
 <style>
   .translate-button {
+    border: 0;
     display: none;
     position: absolute;
     background: #4285f4;

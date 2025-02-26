@@ -6,7 +6,8 @@
   };
 </script>
 <script lang="ts">
-  import type { Frontend } from '../background';
+  import type { Translation, Frontend } from "../background/types";
+
   let { intend = $bindable() }: Props = $props();
   let container: HTMLDivElement;
   let windowHeight = $state(0);
@@ -22,7 +23,7 @@
     const { clickPos } = intend;
     let tmp = 0;
     if (clickPos.clientX + popupMaxWidth +10> windowWidth) {
-      tmp = clickPos.pageX + 10 - (clickPos.clientX + popupMaxWidth + 10 - windowWidth);
+      tmp = clickPos.pageX - (clickPos.clientX + popupMaxWidth + 10 - windowWidth);
     } else {
       tmp = clickPos.pageX + 10;
     }
@@ -37,7 +38,7 @@
     const { clickPos } = intend;
     let tmp = 0;
     if (clickPos.clientY + popupMaxHeight +10> windowHeight) {
-      tmp = clickPos.pageY + 10 - (clickPos.clientY + popupMaxHeight + 10 - windowHeight);
+      tmp = clickPos.pageY - (clickPos.clientY + popupMaxHeight + 10 - windowHeight);
     } else {
       tmp = clickPos.pageY + 10;
     }
@@ -49,7 +50,16 @@
    * @param e
    */
   const handleMouseUp = (e: MouseEvent) => {
-    if (!container.contains(e.target as HTMLElement)) {
+    if (intend) {
+      const rect = container.getBoundingClientRect();
+      if (
+        e.clientX > rect.left &&
+        e.clientX < rect.width + rect.left &&
+        e.clientY > rect.top &&
+        e.clientY < rect.height + rect.top
+      ) {
+        return;
+      }
       intend = null;
     }
   };
@@ -62,15 +72,23 @@
   /**
    * 需要播放的文字
    */
-  let textToPlay: string | undefined = $state();
+  let translation: Translation | undefined = $state();
 
   $effect(() => {
-    if (!intend) textToPlay = undefined;
+    if (!translationPromise) translation = undefined;
   });
+
   /**
    * 语音合成请求
    */
-  let ttsPromise = $derived(intend && textToPlay && invoke('handleTTS', textToPlay));
+  let ttsPromise = $derived.by(() => {
+    if (!intend || !translation) return;
+    if (translation.isWord) {
+      return invoke('handleTTS', intend.text );
+    } else {
+      return invoke('handleTTS', intend.text, translation.language, translation.emotion);
+    }
+  });
   /**
    * 播放停止状态
    */
@@ -119,11 +137,15 @@
     return result;
   });
 
-  $effect(() => {
-    if (!ttsPromise) ttsFrontend = null;
-  });
+  
   let currentTime: number | null = $state(null);
   let currentTimeInMS = $derived(currentTime && currentTime * 1000);
+  $effect(() => {
+    if (!ttsPromise) {
+      ttsFrontend = null;
+      currentTime = null;
+    }
+  });
 </script>
 <svelte:window bind:innerHeight={windowHeight} bind:innerWidth={windowWidth} />
 <svelte:document onmouseup={handleMouseUp} />
@@ -134,7 +156,7 @@
   style:left={`${left}px`}
   style:top={`${top}px`}
 >
-  {#snippet audioIcon(text: string)}
+  {#snippet audioIcon(trans: Translation)}
     {#snippet icon(props: {
       onClick?: () => void,
       status?: 'loading' | 'playing' | 'paused' | 'error',
@@ -146,7 +168,7 @@
       </button>
     {/snippet}
     {#if !ttsPromise}
-      {@render icon({ onClick: () => textToPlay = text})}
+      {@render icon({ onClick: () =>  translation = trans})}
     {:else}
       {#await ttsPromise}
         {@render icon({ status: 'loading' })}
@@ -154,7 +176,7 @@
         {@render icon({ status: paused ? 'paused' : 'playing', onClick: () => paused = !paused })}
         <audio src={tts.audio} bind:paused autoplay={true} onplaying={() => ttsFrontend = tts.frontend } bind:currentTime={currentTime}></audio>
       {:catch error} 
-        {@render icon({ status: 'error', onClick: () => textToPlay = undefined })}
+        {@render icon({ status: 'error', onClick: () => translation = undefined })}
       {/await}
     {/if}
   {/snippet}
@@ -162,17 +184,16 @@
     <div class="loading">翻译中...</div>
   {:then result}
     {#if intend && result?.isWord}
-      {@const trans = result.translation}
       <div class="wordHeader">
         <div class="word">{intend?.text}</div>
         <div class="phonetic">
-          {result.translation.phoneticType}
-          [{result.translation.phonetic}]
-          {@render audioIcon(intend.text)}
+          {result.phoneticType}
+          [{result.phonetic}]
+          {@render audioIcon(result)}
         </div>
       </div>
       <div class="explanations">
-        {#each trans.explanations as exp}
+        {#each result.explanations as exp}
           <div class="explanation-item">
             <span class="partOfSpeech">{exp.partOfSpeech}</span>
             <span class="explanation">{exp.explanation}</span>
@@ -180,7 +201,7 @@
         {/each}
       </div>
       <div class="examples">
-        {#each trans.examples as example}
+        {#each result.examples as example}
           <div class="example-item">
             <div class="english">{example.english}</div>
             <div class="chinese">{example.chinese}</div>
@@ -188,8 +209,8 @@
         {/each}
       </div>
     {:else if intend && result && !result.isWord}
-      {@render audioIcon(intend.text)}
-      <div class="longTextCN">{result.translation}</div>
+      {@render audioIcon(result)}
+      <div class="longTextCN">{result.text}</div>
       <div class="longTextEN">
         {#if currentTimeInMS && parsedTTSFrontend}
           {#each parsedTTSFrontend as word}
@@ -205,6 +226,7 @@
       </div>
     {/if}
   {:catch error}
+    {@debug error}
     <div class="error">翻译失败:{error.message}</div>
   {/await}
 </div>
@@ -261,6 +283,7 @@
   }
 
   .audio-icon {
+    border: 0;
     cursor: pointer;
     display: inline-flex;
     align-items: center;

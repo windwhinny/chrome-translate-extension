@@ -1,23 +1,6 @@
 /// <reference types="vite/client" />
 import { registorBridgeFunction } from '../bridge';
-
-export type Frontend = {
-  words: {
-    word: string,
-    start_time: number,
-    end_time: number,
-    unit_type: 'text'| 'mark',
-  }[]
-}
-
-type TTSResponse = {
-  data: string,
-  addition: {
-    duration: string,
-    first_pkg: string, 
-    frontend: string,
-  }
-}
+import type { SentenceTranslation, WordTranslation, TTSResponse, Frontend } from './types';
 
 // ... 其他代码保持不变 ...
 const wordPrompt = `
@@ -60,25 +43,48 @@ chinese: string
 }
 `
 
-type Translation = {
-  // 音标
-  phonetic: string,
-  // 音标类型：美式、英式
-  phoneticType: string,
-  explanations: {
-  // 词性
-  partOfSpeech: string
-  //释义
-  explanation: string
-  }[],
-  // 例句
-  examples: {
-  // 英文例句
-  english: string,
-  // 中文翻译
-  chinese: string
-  }[]
-}
+const emotionMap = {
+  "客服": "customer_service",
+  "专业": "professional",
+  "严肃": "serious",
+  "旁白-舒缓": "narrator",
+  "旁白-沉浸": "narrator_immersive",
+  "安慰鼓励": "comfort",
+  "撒娇": "lovey-dovey",
+  "可爱元气": "energetic",
+  "绿茶": "conniving",
+  "傲娇": "tsundere",
+  "娇媚": "charming",
+  "讲故事": "storytelling",
+  "情感电台": "radio",
+  "瑜伽": "yoga",
+  "广告": "advertising",
+  "助手": "assistant",
+  "自然对话": "chat",
+  "愉悦": "pleased",
+  "抱歉": "sorry",
+  "嗔怪": "annoyed",
+  "开心": "happy",
+  "悲伤": "sad",
+  "愤怒": "angry",
+  "害怕": "scare",
+  "厌恶": "hate",
+  "惊讶": "surprise",
+  "哭腔": "tear",
+  "平和": "novel_dialog"
+  }
+
+const translationPrompt = `
+将下面语句翻译成中文。
+给出原文本的{语种}，语种可以为： en/zh/jp/kr/fr。
+根据原文内容，判断原文的{语气}，语气可以为：客服、专业、严肃、旁白-舒缓、旁白-沉浸、安慰鼓励、撒娇、可爱元气、绿茶、傲娇、娇媚、讲故事、情感电台、瑜伽、广告、助手、自然对话、愉悦、抱歉、嗔怪、开心、悲伤、愤怒、害怕、厌恶、惊讶、哭腔、平和
+
+将结果严格按照以下JSON格式输出：
+{
+ "text": "{翻译结果}",
+"language": "{语种}",
+"emotion": "{语气}"
+}`
 
 export type TranslateResult = Awaited<ReturnType<typeof handleTranslate>>;
 
@@ -96,9 +102,7 @@ async function handleTranslate(text: string) {
         model: import.meta.env.VITE_ARK_MODEL,
         messages: [{
           role: "system",
-          content: isWord ? 
-            wordPrompt:
-            "你是一个翻译助手。请直接返回翻译结果，不要包含任何解释或额外信息。"
+          content: isWord ?  wordPrompt: translationPrompt
         }, {
           role: "user",
           content: text
@@ -112,19 +116,13 @@ async function handleTranslate(text: string) {
       throw new Error(data.error.message);
     }
 
-    const content = data.choices[0].message.content;
+    const content = JSON.parse(data.choices[0].message.content);
 
-    const r =  {
-        isWord,
-        translation: isWord ? JSON.parse(content) as Translation : content as string,
-    } as {
-      isWord: true,
-      translation: Translation,
-    } | {
-      isWord: false,
-      translation: string,
-    };
-    return r;
+    if (!isWord) {
+      content.emotion = emotionMap[content.emotion as keyof typeof emotionMap];
+    }
+    
+    return { isWord, ...content } as WordTranslation | SentenceTranslation;
   } catch (error) {
     console.error('Translation error:', error);
     throw error;
@@ -139,7 +137,7 @@ function uuid() {
 }
 
 export type TTSResule = Awaited<ReturnType<typeof handleTTS>>;
-async function handleTTS(text: string) {
+async function handleTTS(text: string, language?: string, emotion?: string) {
   const response = await fetch('https://openspeech.bytedance.com/api/v1/tts', {
     method: 'POST',
     headers: {
@@ -156,8 +154,10 @@ async function handleTTS(text: string) {
             uid: "1234"
         },
         audio: {
-            voice_type: "BV421_streaming",
+            voice_type: "BV700_V2_streaming",
             encoding: 'mp3',
+            // language,
+            emotion,
         },
         request: {
             reqid: uuid(),
