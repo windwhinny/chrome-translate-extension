@@ -139,11 +139,11 @@ export type TTSResule = Awaited<ReturnType<typeof handleTTS>>;
 async function handleTTS(text: string, language?: string, emotion?: string) {
   let voice_type = "BV700_V2_streaming";
 
-  if (language == 'zh'){
+  if (language === 'zh'){
     voice_type = "BV700_V2_streaming";
-  } else if (language == 'en') {
+  } else if (language === 'en') {
     voice_type = 'BV138_streaming';
-  } else if (language = 'jp') {
+  } else if (language === 'jp') {
     voice_type = 'BV421_streaming';
   }
   const response = await fetch('https://openspeech.bytedance.com/api/v1/tts', {
