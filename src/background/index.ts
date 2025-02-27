@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 import { registorBridgeFunction } from '../bridge';
+import { OpenAI, type Message } from './services/openai';
 import type { SentenceTranslation, WordTranslation, TTSResponse, Frontend } from './types';
 
 // ... 其他代码保持不变 ...
@@ -87,45 +88,29 @@ const translationPrompt = `
 
 export type TranslateResult = Awaited<ReturnType<typeof handleTranslate>>;
 
+const openai = new OpenAI(import.meta.env.VITE_OPENAI_API_KEY, import.meta.env.VITE_OPENAI_BASE_URL);
+
 // 处理翻译请求
 async function handleTranslate(text: string) {
   const isWord = /^[a-zA-Z]+$/.test(text);
-  try {
-    const response = await fetch('https://ark.cn-beijing.volces.com/api/v3/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${import.meta.env.VITE_ARK_TOKEN}`
-      },
-      body: JSON.stringify({
-        model: import.meta.env.VITE_ARK_MODEL,
-        messages: [{
-          role: "system",
-          content: isWord ?  wordPrompt: translationPrompt
-        }, {
-          role: "user",
-          content: text
-        }]
-      })
-    });
 
-    const data = await response.json();
-    
-    if (data.error) {
-      throw new Error(data.error.message);
-    }
+  const messages: Message[] = [{
+    role: "system",
+    content: isWord ?  wordPrompt: translationPrompt
+  }, {
+    role: "user",
+    content: text
+  }]
+  
+  const resp = await openai.completions(import.meta.env.VITE_OPENAI_MODEL, messages);
 
-    const content = JSON.parse(data.choices[0].message.content);
+  const content = JSON.parse(resp.content);
 
-    if (!isWord) {
-      content.emotion = emotionMap[content.emotion as keyof typeof emotionMap];
-    }
-    
-    return { isWord, ...content } as WordTranslation | SentenceTranslation;
-  } catch (error) {
-    console.error('Translation error:', error);
-    throw error;
+  if (!isWord) {
+    content.emotion = emotionMap[content.emotion as keyof typeof emotionMap];
   }
+  
+  return { isWord, ...content } as WordTranslation | SentenceTranslation;
 }
 
 function uuid() {

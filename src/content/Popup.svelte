@@ -7,7 +7,6 @@
 </script>
 
 <script lang="ts">
-  import type { Translation } from "../background/types";
   import WordTranslation from "./components/WordTranslation.svelte";
   import SentenceTranslation from "./components/SentenceTranslation.svelte";
 
