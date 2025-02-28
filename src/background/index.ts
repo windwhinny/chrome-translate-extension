@@ -108,9 +108,7 @@ async function handleTranslate(text: string) {
   }]
   
   const resp = await openai.completions(import.meta.env.VITE_OPENAI_MODEL, messages);
-
-  const content = JSON.parse(resp.content);
-
+  const content = JSON.parse(resp);
   if (!isWord) {
     content.emotion = emotionMap[content.emotion as keyof typeof emotionMap];
   }

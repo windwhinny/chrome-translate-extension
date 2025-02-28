@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "test": "vitest",
     "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json"
   },
   "devDependencies": {
@@ -19,6 +20,7 @@
   },
   "dependencies": {
     "@types/chrome": "^0.0.306",
-    "vite-plugin-web-extension": "^4.4.3"
+    "vite-plugin-web-extension": "^4.4.3",
+    "vitest": "^3.0.7"
   }
 }
