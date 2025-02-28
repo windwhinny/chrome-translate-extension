@@ -101,9 +101,9 @@ export class StreamReader {
       return {
         char, 
         restore: () => {
-          [this.index, index] = [ index, this.index];
-          [this.currentLines, currentLines] = [ currentLines, this.currentLines];
-          [this.currentPos, currentPos] = [ currentPos, this.currentPos];
+          this.index = index;
+          this.currentLines = currentLines;
+          this.currentPos = currentPos;
         },
       };
     } catch(e) {

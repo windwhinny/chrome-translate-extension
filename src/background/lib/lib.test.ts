@@ -7,7 +7,7 @@ export function makeGenerator(str: string) {
         continue;
       }
 
-      const step =Math.random() * 1000 % 10;
+      const step = Math.round(Math.random() * 1000 % 10);
       i = Math.min(i + step, str.length)
 
       yield str.slice(last, i);

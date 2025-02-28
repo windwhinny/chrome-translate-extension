@@ -48,6 +48,7 @@ export class JSONObject extends JSONNode {
   public async parse(reader: StreamReader) {
     while(true) {
       let char = await reader.readNextCharSkipBlank();
+      if (char === JSONObject.end) break;
       if (!JSONKeyValuePair.startWith(char)) throw new UnexpectedCharError(char, reader, JSONKeyValuePair.start);
       const node = new JSONKeyValuePair(char);
       node.watches = this.watches;
@@ -179,6 +180,7 @@ export class JSONArray extends JSONNode {
   public async parse(reader: StreamReader) {
     while(true) {
       let char = await reader.readNextCharSkipBlank();
+      if (char === JSONObject.end) break;
       const Kind = [JSONArray, JSONObject, JSONString, JSONNumber, JSONBoolean, JSONNull].find(k => {
         if (k.startWith(char)) return k;
       });
@@ -275,7 +277,7 @@ export class JSONNumber extends JSONNode {
         if (this.haveE) throw new UnexpectedCharError(char, reader);
         this.str += char;
         this.str += await this.readInt(reader);
-      } else if (char === 'e') {
+      } else if (char === 'e' || char === 'E') {
         if (!this.isNumberChar(this.lastChar)) throw new UnexpectedCharError(char, reader);
         this.haveE = true;
         this.str += char;
@@ -340,7 +342,7 @@ export class JSONRoot extends JSONNode {
   async parse(reader: StreamReader) {
       const char = await reader.readNextCharSkipBlank();
 
-      const Kind = [JSONObject, JSONArray].find(k => {
+      const Kind = [JSONObject, JSONArray, JSONString, JSONNumber, JSONBoolean, JSONNull].find(k => {
         if (k.startWith(char)) return k;
       });
 

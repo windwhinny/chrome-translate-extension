@@ -14,7 +14,7 @@ export default class Signal<T> {
   }
   reject(error: unknown) {
     this.handled = true;
-    this.error = this.error;
+    this.error = error;
     this._reject?.(error);
   }
 

@@ -47,7 +47,7 @@ export class OpenAI {
             if (line.startsWith('data: ')) {
               const data = line.slice(6);
               if (data === '[DONE]') {
-                break;
+                return;
               }
 
               try {
@@ -63,7 +63,6 @@ export class OpenAI {
           }
         }
       }
-
       return result() as U;
     } else {
       return Promise.resolve(res.json())
