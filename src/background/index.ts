@@ -1,9 +1,9 @@
 /// <reference types="vite/client" />
 import { registorBridgeFunction } from '../bridge';
 import { OpenAI, type Message } from './services/openai';
+import { OpenSpeech } from './services/openspeach';
 import type { SentenceTranslation, WordTranslation, TTSResponse, Frontend } from './types';
 
-// ... 其他代码保持不变 ...
 const wordPrompt = `
 你是一个专业的英语词典助手，负责提供精确的单词信息。当用户输入查询单词时，请按照以下规范返回信息：
 首先接收用户输入的{{查询单词}}：
@@ -86,9 +86,14 @@ const translationPrompt = `
 "emotion": "{语气}"
 }`
 
-export type TranslateResult = Awaited<ReturnType<typeof handleTranslate>>;
-
-const openai = new OpenAI(import.meta.env.VITE_OPENAI_API_KEY, import.meta.env.VITE_OPENAI_BASE_URL);
+const openai = new OpenAI(
+  import.meta.env.VITE_OPENAI_API_KEY,
+  import.meta.env.VITE_OPENAI_BASE_URL,
+);
+const openspeech = new OpenSpeech(
+  import.meta.env.VITE_VOLC_APPID,
+  import.meta.env.VITE_VOLC_TOKEN,
+);
 
 // 处理翻译请求
 async function handleTranslate(text: string) {
@@ -113,61 +118,14 @@ async function handleTranslate(text: string) {
   return { isWord, ...content } as WordTranslation | SentenceTranslation;
 }
 
-function uuid() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-}
-
-export type TTSResule = Awaited<ReturnType<typeof handleTTS>>;
 async function handleTTS(text: string, language?: string, emotion?: string) {
   let voice_type = "BV700_V2_streaming";
 
-  if (language === 'zh'){
-    voice_type = "BV700_V2_streaming";
-  } else if (language === 'en') {
-    voice_type = 'BV138_streaming';
-  } else if (language === 'jp') {
-    voice_type = 'BV421_streaming';
-  }
-  const response = await fetch('https://openspeech.bytedance.com/api/v1/tts', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer;${import.meta.env.VITE_VOLC_TOKEN}`,
-    },
-    body: JSON.stringify({
-        app: {
-            appid: import.meta.env.VITE_VOLC_APPID,
-            token: "1234",
-            cluster: "volcano_tts",
-        },
-        user: {
-            uid: "1234"
-        },
-        audio: {
-            voice_type,
-            encoding: 'mp3',
-            language,
-            emotion,
-        },
-        request: {
-            reqid: uuid(),
-            text: text,
-            operation: "query",
-            with_timestamp: 1,
-        }
-    }),
+  return openspeech.tts(text, {
+    voice_type,
+    language,
+    emotion,
   });
-
-  const data = await response.json() as TTSResponse;
-
-  return {
-    audio: `data:audio/mp3;base64,${data.data}`,
-    duration: Number(data.addition.duration),
-    frontend: JSON.parse(data.addition.frontend) as Frontend,
-  }
 }
 
 const funcs = registorBridgeFunction({
