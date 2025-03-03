@@ -9,6 +9,7 @@
 <script lang="ts">
   import WordTranslation from "./components/WordTranslation.svelte";
   import SentenceTranslation from "./components/SentenceTranslation.svelte";
+    import TranslateButton from "./TranslateButton.svelte";
 
   let { intend = $bindable() }: Props = $props();
   let container: HTMLDivElement;
@@ -85,11 +86,11 @@
   {#await translationPromise}
     <div class="loading">翻译中...</div>
   {:then result}
-    {#if intend && result?.isWord}
+    {#if intend && result && 'isWord' in result}
       <WordTranslation translation={result} text={intend.text} />
-    {:else if intend && result && !result.isWord}
+    {:else if intend && result  && !('isWord' in result)}
       <SentenceTranslation 
-        translation={result} 
+        stream={result} 
         text={intend.text}
       />
     {/if}

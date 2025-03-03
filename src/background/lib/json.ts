@@ -15,22 +15,10 @@ export abstract class JSONNode {
 
   public abstract parse(reader: StreamReader): Promise<void>;
 
-  watches: {
-    path: string[];
-    handler: (data: any, chunk: unknown) => void;
-  }[] = [];
+  onValueUpdated?: (data: any) => void;
 
-  valueUpdated(value: any, chunk?: unknown) {
-    this.watches.forEach(item => {
-      if (item.path.length === 0) {
-        item.handler(value, chunk);
-      }
-    });
-  }
-
-  watch(path: string[], handler: (data: any, chunk: unknown) => void) {
-    const item = { path, handler };
-    this.watches.push(item)
+  watch(handler: (data: any) => void) {
+    this.onValueUpdated = handler;
   }
 };
 
@@ -48,10 +36,13 @@ export class JSONObject extends JSONNode {
   public async parse(reader: StreamReader) {
     while(true) {
       let char = await reader.readNextCharSkipBlank();
-      if (char === JSONObject.end) break;
+      if (char === JSONObject.end) {
+        this.onValueUpdated?.(this.value);
+        break;
+      }
       if (!JSONKeyValuePair.startWith(char)) throw new UnexpectedCharError(char, reader, JSONKeyValuePair.start);
       const node = new JSONKeyValuePair(char);
-      node.watches = this.watches;
+      node.onValueUpdated = this.onValueUpdated;
       this.children.push(node);
       await node.parse(reader);
       char = await reader.readNextCharSkipBlank();
@@ -66,6 +57,20 @@ export class JSONString extends JSONNode {
   static start = '"';
   static end = '"';
   value = '';
+
+  _onValueUpdated = (() => {
+    let i: NodeJS.Timeout; 
+    return (immediate: boolean = false) => {
+      clearTimeout(i);
+      if (immediate) {
+        this.onValueUpdated?.(this.value)
+      } else {
+        i = setTimeout(() => {
+          this.onValueUpdated?.(this.value)
+        }, 3000)
+      }
+    }
+  })();
 
   async readUnicodeEscape(reader: StreamReader) {
     const code = await reader.readNextNChars(4);
@@ -98,13 +103,14 @@ export class JSONString extends JSONNode {
       if (c === '\\') {
         c = await this.readEscapedChar(reader);
         this.value += c;
-        this.valueUpdated(this.value, c)
+        this._onValueUpdated();
         continue;
       }
       if (c === '"') break;
       this.value += c;
-      this.valueUpdated(this.value, c)
+      this._onValueUpdated();
     }
+    this._onValueUpdated(true);
   }
 }
 
@@ -120,25 +126,6 @@ export class JSONKeyValuePair extends JSONNode {
     } ;
   }
 
-  valueUpdated(value: any, chunk?: unknown) {
-    this.watches.forEach(item => {
-      if (item.path.length === 1 && item.path[0] === this.keyNode?.value) {
-        item.handler(value, chunk);
-      }
-    });
-  }
-
-  getChildrenWatches() {
-    if (!this.keyNode) return [];
-    const key = this.keyNode.value;
-    return this.watches
-      .filter(item => item.path[0] === key)
-      .map(item => ({
-        ...item,
-        path: item.path.slice(1),
-      }));
-  }
-
   public async parse(reader: StreamReader) {
     const key = new JSONString(this.firstChar);
     this.keyNode = key;
@@ -151,12 +138,10 @@ export class JSONKeyValuePair extends JSONNode {
     });
     if (!Kind) throw new UnexpectedCharError(char, reader);
     const value = new Kind(char);
-    value.watches = this.getChildrenWatches();
+    value.onValueUpdated = this.onValueUpdated;
     this.valueNode = value;
     this.children.push(value);
     await value.parse(reader);
-
-    this.valueUpdated(this.value, null);
   }
 }
 
@@ -166,15 +151,6 @@ export class JSONArray extends JSONNode {
 
   get value() {
     return this.children.map(child => child.value);
-  }
-
-  getChildrenWatches(index: number) {
-    return this.watches
-      .filter(item => item.path[0] === String(index))
-      .map(item => ({
-        ...item,
-        path: item.path.slice(1),
-      }));
   }
 
   public async parse(reader: StreamReader) {
@@ -187,7 +163,7 @@ export class JSONArray extends JSONNode {
       if (!Kind) throw new UnexpectedCharError(char, reader);
       const value = new Kind(char);
       this.children.push(value);
-      value.watches = this.getChildrenWatches(this.children.length - 1);
+      value.onValueUpdated = this.onValueUpdated;
       await value.parse(reader);
       char = await reader.readNextCharSkipBlank();
       if (char === ',') continue;
@@ -286,14 +262,12 @@ export class JSONNumber extends JSONNode {
         restore();
         break;
       }
-
-      this.valueUpdated(this.value, null);
     }
   }
 
   public async parse(reader: StreamReader) {
     await this.parseNumber(reader);
-    this.valueUpdated(this.value, null);
+    this.onValueUpdated?.(this.value);
   }
 }
 
@@ -306,13 +280,13 @@ export class JSONBoolean extends JSONNode {
     let char = this.firstChar + await reader.readNextNChars(3);
     if (char === 'true') {
       this.value = true;
-      this.valueUpdated(this.value)
+      this.onValueUpdated?.(this.value)
       return;
     } else {
       char += await reader.readNextChar();
       if (char === 'false') {
         this.value = false;
-        this.valueUpdated(this.value)
+        this.onValueUpdated?.(this.value)
         return;
       }
     }
@@ -326,7 +300,7 @@ export class JSONNull extends JSONNode {
   public async parse(reader: StreamReader) {
     let char = this.firstChar + await reader.readNextNChars(3);
     if (char === 'null') {
-      this.valueUpdated(this.value)
+      this.onValueUpdated?.(this.value)
       return;
     }
     throw new UnexpectedCharError(char, reader);
@@ -351,7 +325,7 @@ export class JSONRoot extends JSONNode {
       const node = new Kind(char);
       this.children.push(node);
       this.child = node;
-      node.watches = this.watches;
+      this.child.onValueUpdated = this.onValueUpdated;
       await node.parse(reader);
   }
 }

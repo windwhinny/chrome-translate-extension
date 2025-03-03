@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
-import { registorBridgeFunction } from '../bridge';
+import { registorBridgeFunction, Stream } from '../bridge';
+import streamJSONParse from './lib/streamJSONParse';
 import { OpenAI, type Message } from './services/openai';
 import { OpenSpeech } from './services/openspeach';
 import type { SentenceTranslation, WordTranslation, TTSResponse, Frontend } from './types';
@@ -71,7 +72,7 @@ const emotionMap = {
   "惊讶": "surprise",
   "哭腔": "tear",
   "平和": "novel_dialog"
-  }
+}
 
 const translationPrompt = `
 将下面语句翻译成中文/英文。
@@ -95,25 +96,59 @@ const openspeech = new OpenSpeech(
   import.meta.env.VITE_VOLC_TOKEN,
 );
 
+async function handleWordTranslate(text: string) {
+  const messages: Message[] = [{
+    role: "system",
+    content: wordPrompt,
+  }, {
+    role: "user",
+    content: text
+  }];
+  const resp = await openai.completions(import.meta.env.VITE_OPENAI_MODEL, messages, {
+    response_format: { type: "json_object" },
+  });
+  const content = JSON.parse(resp);
+  const result = { isWord: true, ...content } as WordTranslation;
+  result.phonetic = result.phonetic?.replace(/^(\/|\[)|(\/|\])$/g, '');
+  return result;
+}
+
+async function handleSentenceTranslate(text: string) {
+  const messages: Message[] = [{
+    role: "system",
+    content: translationPrompt,
+  }, {
+    role: "user",
+    content: text
+  }];
+  const resp = await openai.streamCompletions(import.meta.env.VITE_OPENAI_MODEL, messages, {
+    response_format: { type: "json_object" },
+  });
+
+  const stream = new Stream<SentenceTranslation>(undefined, 'server');
+  streamJSONParse<SentenceTranslation>(resp).watch((data) => {
+    stream.send({
+      ...data,
+      isWord: false,
+      done: false,
+    });
+  }).wrap().then((result) => {
+    stream.send({ ...result, isWord: false, done: true });
+  }).catch((error) => {
+    stream.sendError(error);
+  });
+
+  return stream;
+}
 // 处理翻译请求
 async function handleTranslate(text: string) {
   const isWord = /^[a-zA-Z]+$/.test(text);
 
-  const messages: Message[] = [{
-    role: "system",
-    content: isWord ?  wordPrompt: translationPrompt
-  }, {
-    role: "user",
-    content: text
-  }]
-  
-  const resp = await openai.completions(import.meta.env.VITE_OPENAI_MODEL, messages);
-  const content = JSON.parse(resp);
-  if (!isWord) {
-    content.emotion = emotionMap[content.emotion as keyof typeof emotionMap];
+  if (isWord) {
+    return handleWordTranslate(text);
+  } else {
+    return handleSentenceTranslate(text);
   }
-  
-  return { isWord, ...content } as WordTranslation | SentenceTranslation;
 }
 
 async function handleTTS(text: string, language?: string, emotion?: string) {

@@ -1,5 +1,5 @@
 export function makeGenerator(str: string) {
-  return async function* (): AsyncGenerator<string, void, string> {
+  return async function* () {
     let last = 0;
     for (let i = 0; i < str.length;) {
       if (i == 0) {

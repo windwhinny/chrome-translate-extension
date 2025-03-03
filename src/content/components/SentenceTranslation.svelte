@@ -1,21 +1,37 @@
 <script lang="ts" module>
   export type Props = {
-    translation: SentenceTranslation;
+    stream: Stream<SentenceTranslation>;
     text: string;
   };
 </script>
 <script lang="ts">
   import type { SentenceTranslation, Frontend } from "../../background/types";
-  import { invoke } from "../../bridge";
+  import { invoke, Stream } from "../../bridge";
   import AudioButton, { type PlayStatus } from "./AudioButton.svelte";
 
-  let { translation, text, }: Props = $props();
+  let { stream, text }: Props = $props();
+
+  let translation: Partial<SentenceTranslation> | undefined = $state();
+    $inspect(stream)
+  
+  $effect(() => {
+    stream.on((data, error) => {
+      if (error) {
+        throw error;
+      }
+      if (data) {
+        translation = data;
+      }
+    });
+  });
 
   let ttsFrontend: Frontend | null = $state(null);
 
   let onPlay = async () => {
+    const { language, emotion, done } = translation || {};
     try {
-      const data = await invoke('handleTTS', text, translation.language, translation.emotion);
+      if (!text || !done) return;
+      const data = await invoke('handleTTS', text, language, emotion);
       playStatus = {
         status: 'playing',
         progress: 0,
@@ -33,6 +49,7 @@
 
   let parsedTTSFrontend = $derived.by(() => {
     if (!ttsFrontend) return;
+    if (!text) return;
     let textCopy = text;
     let result: ({
       start: number,
@@ -87,7 +104,7 @@
 </script>
 
 <AudioButton bind:playStatus={playStatus} onPlay={onPlay} />
-<div class="longTextCN">{translation.text}</div>
+<div class="longTextCN">{translation?.text  || '翻译中...'}</div>
 <div class="longTextEN">
   {#if current && parsedTTSFrontend}
     {#each parsedTTSFrontend as word}

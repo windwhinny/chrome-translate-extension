@@ -28,7 +28,11 @@ describe('streamJSONParse', () => {
       luckyNumbers: [1, 2, 3, 4, 5]
     };
     const gen = makeGenerator(JSON.stringify(data));
-    const result = await streamJSONParse(gen()).wrap();
+    const result = await streamJSONParse(gen())
+    .watch((data) => {
+      console.log(data);
+    })
+    .wrap();
     expect(result).toEqual(data);
   });
 });

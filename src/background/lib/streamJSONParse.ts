@@ -2,7 +2,11 @@ import { JSONRoot } from "./json";
 import { StreamReader, UnexpectedCharError } from "./reader";
 import Signal from "./signal";
 
-export default function streamJSONParse<T>(stream: AsyncGenerator<string, void, string>) {
+type DeepPartial<T> = T extends object ? {
+  [P in keyof T]?: DeepPartial<T[P]>;
+} : T;
+
+export default function streamJSONParse<T>(stream: AsyncGenerator<string>) {
   const reader = new StreamReader(stream);
   const root = new JSONRoot('');
 
@@ -12,9 +16,10 @@ export default function streamJSONParse<T>(stream: AsyncGenerator<string, void, 
     wrap() {
       return signal.wait();
     },
-    watch(path: string, handler: (data: T, chunk: unknown) => void) {
-      const pathArray = path.split('.');
-      root.watch(pathArray, handler);
+    watch(handler: (data: DeepPartial<T>) => void) {
+      root.watch(() => {
+        handler(root.value);
+      });
       return this;
     }
   };

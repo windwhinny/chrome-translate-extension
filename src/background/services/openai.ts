@@ -20,7 +20,7 @@ export class OpenAI {
 
   handleResponse<
     T extends boolean | undefined,
-    U = T extends true ? AsyncGenerator<string, string, string> : Promise<string>,
+    U = T extends true ? AsyncGenerator<string> : Promise<string>,
   >(
     res: Response,
     stream: T,
@@ -75,7 +75,7 @@ export class OpenAI {
     }
   }
 
-  completionsReq(model: string, messages: Message[], stream: boolean) {
+  completionsReq(model: string, messages: Message[], stream: boolean, options: Record<string, any> = {}) {
     const url = `${this.baseUrl}/chat/completions`;
     return fetch(url, {
       method: 'POST',
@@ -84,17 +84,18 @@ export class OpenAI {
         model,
         messages,
         stream,
+        ...options,
       }),
     });
   }
 
-  async streamCompletions(model: string, messages: Message[]) {
-    const resp = await this.completionsReq(model, messages, true);
+  async streamCompletions(model: string, messages: Message[], options?: Record<string, any>) {
+    const resp = await this.completionsReq(model, messages, true, options);
     return this.handleResponse(resp, true);
   }
 
-  async completions(model: string, messages: Message[]) {
-    const resp = await this.completionsReq(model, messages, false);
+  async completions(model: string, messages: Message[], options?: Record<string, any>) {
+    const resp = await this.completionsReq(model, messages, false, options);
     return this.handleResponse(resp, false);
   }
 }

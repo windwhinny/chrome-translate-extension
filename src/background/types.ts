@@ -1,3 +1,5 @@
+import type { Stream } from "../bridge"
+
 export type Frontend = {
   words: {
     word: string,
@@ -18,9 +20,10 @@ export type TTSResponse = {
 
 export type SentenceTranslation = {
   isWord: false,
-  text: string,
-  language: string,
-  emotion: string,
+  done: boolean,
+  text?: string,
+  language?: string,
+  emotion?: string,
 }
 
 export type WordTranslation = {

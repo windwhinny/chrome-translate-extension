@@ -34,4 +34,14 @@ describe('OpenAI', () => {
     }]);
     expect(res).toBe('大炮不能打蚊子');
   });
+
+  it('completions should return json with response_format', async () => {
+    const res = await openai.completions(model, [{
+      role: 'user',
+      content: '用 JSON 格式输出一首诗',
+    }], {
+      response_format: {"type": "json_object"},
+    });
+    expect(JSON.parse(res)).toBeInstanceOf(Object);
+  });
 });
