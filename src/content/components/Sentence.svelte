@@ -6,27 +6,52 @@
   };
 </script>
 <script lang="ts">
+  import {
+    createMarkdownStreamParser,
+  } from "@nlux/markdown"
   import type { SentenceTranslation, Frontend } from "../../background/types";
   import { Stream } from "../../lib/stream";
   import { invoke } from "../../lib/bridge";
   import AudioButton, { type PlayStatus } from "./AudioButton.svelte";
+  import { parseTTS } from "./Sentence.lib";
 
   let { tranlationStream: stream, canPlay = true, text }: Props = $props();
-
+  let markdownContainer: HTMLElement | null = $state(null);
   let translation: Partial<SentenceTranslation> | undefined = $state();
+  let error: Error | undefined = $state();
   
   $effect(() => {
-    stream?.on((data, error) => {
-      if (error) {
-        throw error;
-      }
-      if (data) {
-        translation = data;
+    if (!markdownContainer) return;
+    if (!stream) return;
+    const markdown = createMarkdownStreamParser(markdownContainer)
+    let lastLength = 0;
+    stream.on((data, e) => {
+      if (e) return error = e;
+      translation = data;
+      const { text, done } = data || {}; 
+      if (!text) return;
+      const chunk = text.slice(lastLength, text.length - 1);
+      markdown.next(chunk);
+      lastLength = text.length;
+      if (done) {
+        markdown.complete();
       }
     });
+
+    return () => {
+      if (markdownContainer) {
+        markdownContainer.innerHTML = '';
+      }
+    }
   });
 
   let ttsFrontend: Frontend | null = $state(null);
+
+  let parsedTTSFrontend = $derived.by(() => {
+    if (!ttsFrontend) return null;
+    if (!text) return null;
+    return parseTTS(ttsFrontend, text);
+  });
 
   let onPlay = async () => {
     const { language, emotion, done } = translation || {};
@@ -48,50 +73,6 @@
     }
   }
 
-  let parsedTTSFrontend = $derived.by(() => {
-    if (!ttsFrontend) return;
-    if (!text) return;
-    let textCopy = text;
-    let result: ({
-      start: number,
-      end: number,
-      text: string,
-      isSpace: false,
-    } | {
-      text: string,
-      isSpace: true,
-    })[] = [];
-    
-    const { words } = ttsFrontend;
-    words.forEach((word, forEachIndex) => {
-      const index = textCopy.indexOf(word.word);
-      const firstPart = textCopy.slice(0, index)
-      const secondPart = textCopy.slice(index + word.word.length);
-      textCopy = secondPart;
-      
-      if (firstPart) {
-        result.push({
-          isSpace: true,
-          text: firstPart,
-        });
-      }
-      result.push({
-        start: word.start_time,
-        end: word.end_time,
-        isSpace: false,
-        text: word.word,
-      });
-      if(forEachIndex === words.length - 1) {
-        result.push({
-          isSpace: true,
-          text: textCopy,
-        });
-      }
-    });
-
-    return result;
-  });
-
   let playStatus: PlayStatus = $state({
     status: 'idle',
   });
@@ -108,7 +89,15 @@
   <AudioButton bind:playStatus={playStatus} onPlay={onPlay} />
 {/if}
 {#if stream}
-  <div class="translationResult">{translation?.text  || '翻译中...'}</div>
+  {#if error}
+    <div class="error">{error.message}</div>
+  {/if}
+  <div class="translationResult" >
+    {#if !(translation?.text)}
+      <div>翻译中...</div>
+    {/if}
+    <div bind:this={markdownContainer} ></div>
+  </div>
 {/if}
 <div class="originText">
   {#if current && parsedTTSFrontend}

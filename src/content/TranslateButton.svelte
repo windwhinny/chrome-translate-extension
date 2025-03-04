@@ -1,5 +1,4 @@
 <script module lang="ts">
-  import { invoke } from "../lib/bridge";
   import type { ClickPos, TranslateIntend } from "./types";
   export type Props = {
     intend: TranslateIntend | null,
@@ -27,7 +26,8 @@
     }
   })
 
-  const handleMouseUp = (e: MouseEvent) => {
+  const handleMouseUp = async (e: MouseEvent) => {
+    await new Promise(resolve => requestAnimationFrame(resolve));
     selectedText = window.getSelection()?.toString().trim();
     if (intend) return;
     if (selectedText) {

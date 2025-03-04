@@ -19,6 +19,7 @@
     "vite": "^6.2.0"
   },
   "dependencies": {
+    "@nlux/markdown": "^2.17.1",
     "@types/chrome": "^0.0.306",
     "vite-plugin-web-extension": "^4.4.3",
     "vitest": "^3.0.7"
