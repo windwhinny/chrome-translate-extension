@@ -11,7 +11,6 @@ describe('JSONNumber', () => {
       const num = new JSONNumber('');
       await num.parse(new StreamReader(generator()));
       expect(num.str).toBe(str);
-      console.log(str)
     }
   });
 

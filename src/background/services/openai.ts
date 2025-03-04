@@ -1,6 +1,12 @@
 export type Message = {
   role: 'system' | 'user' | 'assistant';
-  content: string;
+  content: string | {
+    type: string;
+    image_url?: string;
+    text?: string;
+    min_pixels?: number;
+    max_pixels?: number;
+  }[];
 }
 
 export class OpenAI {
@@ -37,12 +43,12 @@ export class OpenAI {
           if (read.done) {
             break;
           }
-          
+
           const text = new TextDecoder().decode(read.value);
           buffer += text;
           const lines = buffer.split('\n');
           buffer = lines.pop() || '';
-          
+
           for (const line of lines) {
             if (line.startsWith('data: ')) {
               const data = line.slice(6);
@@ -66,12 +72,12 @@ export class OpenAI {
       return result() as U;
     } else {
       return Promise.resolve(res.json())
-      .then((data) => {
-        if (data.error) {
-          throw new Error(data.error.message);
-        }
-        return data.choices[0].message.content as string;
-      }) as U;
+        .then((data) => {
+          if (data.error) {
+            throw new Error(data.error.message);
+          }
+          return data.choices[0].message.content as string;
+        }) as U;
     }
   }
 
@@ -97,5 +103,21 @@ export class OpenAI {
   async completions(model: string, messages: Message[], options?: Record<string, any>) {
     const resp = await this.completionsReq(model, messages, false, options);
     return this.handleResponse(resp, false);
+  }
+
+  async ocr(image: string) {
+    const resp = await this.completionsReq('qwen-vl-ocr', [{
+      'role': 'user',
+      content: [{
+        "type": "image_url",
+        "image_url": image,
+        "min_pixels": 28 * 28 * 4,
+        "max_pixels": 28 * 28 * 1280
+      }, {
+        type: 'text',
+        text: '请识别图片中的文字，并返回文字内容。'
+      }]
+    }], true);
+    return this.handleResponse(resp, true);
   }
 }

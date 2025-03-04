@@ -1,4 +1,4 @@
-import type { Stream } from "../bridge"
+import type { Stream } from "../lib/bridge"
 
 export type Frontend = {
   words: {

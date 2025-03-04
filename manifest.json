@@ -4,13 +4,22 @@
   "version": "1.0",
   "description": "选择文本进行翻译的Chrome扩展",
   "permissions": [
+    "scripting",
     "activeTab",
-    "scripting"
+    "tabCapture",
+    "contextMenus"
   ],
+  "action": {
+    "default_title": "翻译"
+  },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["src/content/index.ts"]
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "src/content/index.ts"
+      ]
     }
   ],
   "background": {
@@ -18,8 +27,13 @@
   },
   "web_accessible_resources": [
     {
-        "resources": ["*.js.map"],
-        "matches": ["https://*/*","http://*/*"]
+      "resources": [
+        "*.js.map"
+      ],
+      "matches": [
+        "https://*/*",
+        "http://*/*"
+      ]
     }
   ]
-} 
+}

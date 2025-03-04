@@ -1,6 +1,6 @@
 <script lang="ts" module>
   import type {  WordTranslation } from "../../background/types";
-    import { invoke } from "../../bridge";
+    import { invoke } from "../../lib/bridge";
   export type Props = {
     translation: WordTranslation,
     text: string,
@@ -50,15 +50,6 @@
   {/each}
 </div>
 
-<div class="examples">
-  {#each translation.examples as example}
-    <div class="example-item">
-      <div class="english">{example.english}</div>
-      <div class="chinese">{example.chinese}</div>
-    </div> 
-  {/each}
-</div>
-
 <style>
   .word {
     font-size: 24px;
@@ -89,25 +80,5 @@
     color: #1a73e8;
     font-weight: 500;
     margin-right: 1em;
-  }
-
-  .examples {
-    border-top: 1px solid #eee;
-    padding-top: 12px;
-  }
-
-  .example-item {
-    margin-bottom: 12px;
-    padding-left: 12px;
-    border-left: 2px solid #eee;
-  }
-
-  .english {
-    color: #333;
-    margin-bottom: 4px;
-  }
-
-  .chinese {
-    color: #666;
   }
 </style> 

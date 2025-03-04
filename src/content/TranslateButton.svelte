@@ -1,4 +1,5 @@
 <script module lang="ts">
+  import { invoke } from "../lib/bridge";
   import type { ClickPos, TranslateIntend } from "./types";
   export type Props = {
     intend: TranslateIntend | null,

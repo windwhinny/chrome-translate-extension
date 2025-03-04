@@ -6,7 +6,7 @@
 </script>
 <script lang="ts">
   import type { SentenceTranslation, Frontend } from "../../background/types";
-  import { invoke, Stream } from "../../bridge";
+  import { invoke, Stream } from "../../lib/bridge";
   import AudioButton, { type PlayStatus } from "./AudioButton.svelte";
 
   let { stream, text }: Props = $props();

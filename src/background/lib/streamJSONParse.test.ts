@@ -29,9 +29,6 @@ describe('streamJSONParse', () => {
     };
     const gen = makeGenerator(JSON.stringify(data));
     const result = await streamJSONParse(gen())
-    .watch((data) => {
-      console.log(data);
-    })
     .wrap();
     expect(result).toEqual(data);
   });

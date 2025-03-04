@@ -1,5 +1,5 @@
 <script module lang="ts">
-  import { invoke } from "../bridge";
+  import { invoke } from "../lib/bridge";
   import type { TranslateIntend } from "./types";
   export type Props = {
     intend: TranslateIntend | null;
