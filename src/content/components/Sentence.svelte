@@ -1,21 +1,22 @@
 <script lang="ts" module>
   export type Props = {
-    stream: Stream<SentenceTranslation>;
+    tranlationStream?: Stream<SentenceTranslation>;
     text: string;
+    canPlay?: boolean,
   };
 </script>
 <script lang="ts">
   import type { SentenceTranslation, Frontend } from "../../background/types";
-  import { invoke, Stream } from "../../lib/bridge";
+  import { Stream } from "../../lib/stream";
+  import { invoke } from "../../lib/bridge";
   import AudioButton, { type PlayStatus } from "./AudioButton.svelte";
 
-  let { stream, text }: Props = $props();
+  let { tranlationStream: stream, canPlay = true, text }: Props = $props();
 
   let translation: Partial<SentenceTranslation> | undefined = $state();
-    $inspect(stream)
   
   $effect(() => {
-    stream.on((data, error) => {
+    stream?.on((data, error) => {
       if (error) {
         throw error;
       }
@@ -103,9 +104,13 @@
   });
 </script>
 
-<AudioButton bind:playStatus={playStatus} onPlay={onPlay} />
-<div class="longTextCN">{translation?.text  || '翻译中...'}</div>
-<div class="longTextEN">
+{#if canPlay}
+  <AudioButton bind:playStatus={playStatus} onPlay={onPlay} />
+{/if}
+{#if stream}
+  <div class="translationResult">{translation?.text  || '翻译中...'}</div>
+{/if}
+<div class="originText">
   {#if current && parsedTTSFrontend}
     {#each parsedTTSFrontend as word}
       {#if word.isSpace}
@@ -122,13 +127,13 @@
 </div>
 
 <style>
-  .longTextCN {
+  .translationResult {
     display: block;
     margin-bottom: 10px;
     margin-top: 10px;
   }
 
-  .longTextEN {
+  .originText {
     display: block;
   }
 

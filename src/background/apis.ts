@@ -69,7 +69,6 @@ const translationPrompt = `
 
 将结果严格按照以下JSON格式输出：
 {
-"origin": "{原始文本}",
 "text": "{翻译结果}",
 "language": "{语种}",
 "emotion": "{语气}"

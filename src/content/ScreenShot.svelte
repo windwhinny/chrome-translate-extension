@@ -1,5 +1,5 @@
 <script module lang="ts">
-    import { invoke } from "../lib/bridge";
+  import { invoke } from "../lib/bridge";
   import type { TranslateIntend } from "./types";
   export type Props = {
     intend: TranslateIntend | null,
@@ -49,9 +49,9 @@
     
     await new Promise(resolve => setTimeout(resolve));
     const image = await getClipedImage(x,  y, width, height);
-    const text = await invoke('handleOCR', image);
     intend = {
-      text,
+      data: image,
+      type: 'image',
       clickPos: {
         clientX: event.clientX,
         clientY: event.clientY,

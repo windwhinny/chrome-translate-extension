@@ -7,9 +7,8 @@
 </script>
 
 <script lang="ts">
-  import WordTranslation from "./components/WordTranslation.svelte";
-  import SentenceTranslation from "./components/SentenceTranslation.svelte";
-    import TranslateButton from "./TranslateButton.svelte";
+  import Word from "./components/Word.svelte";
+  import Sentence from "./components/Sentence.svelte";
 
   let { intend = $bindable() }: Props = $props();
   let container: HTMLDivElement;
@@ -70,7 +69,14 @@
   /**
    * 翻译请求
    */
-  let translationPromise = $derived(intend && invoke('handleTranslate', intend.text));
+  let translationPromise = $derived.by(() => {
+    if (!intend) return;
+    if (intend.type === 'text') {
+      return invoke('handleTranslate', intend.data);
+    } else {
+      return invoke('handleOCR', intend.data);
+    }
+  });
 </script>
 
 <svelte:window bind:innerHeight={windowHeight} bind:innerWidth={windowWidth} />
@@ -86,13 +92,17 @@
   {#await translationPromise}
     <div class="loading">翻译中...</div>
   {:then result}
-    {#if intend && result && 'isWord' in result}
-      <WordTranslation translation={result} text={intend.text} />
-    {:else if intend && result  && !('isWord' in result)}
-      <SentenceTranslation 
-        stream={result} 
-        text={intend.text}
-      />
+    {#if intend && result}
+      {#if typeof result == 'string'}
+        <Sentence text={result} canPlay={false} />
+      {:else if 'isWord' in result}
+        <Word translation={result} text={intend.data} />
+      {:else if !('isWord' in result)}
+        <Sentence 
+          tranlationStream={result} 
+          text={intend.data}
+        />
+      {/if}
     {/if}
   {:catch error}
     {@debug error}
@@ -102,6 +112,7 @@
 
 <style>
   .translate-popup {
+    box-sizing: border-box;
     position: absolute;
     background: white;
     border: 1px solid #ddd;

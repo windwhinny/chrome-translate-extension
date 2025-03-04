@@ -5,7 +5,8 @@ export type ClickPos = {
     clientY: number,
 }
 export type TranslateIntend = {
-    text: string,
+    data: string,
+    type: 'text' | 'image',
     clickPos: ClickPos,
 }
 

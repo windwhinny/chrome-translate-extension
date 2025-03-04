@@ -48,7 +48,8 @@
   const onClick = () => {
     if (!selectedText || !pos || intend) return;
     intend = {
-      text: selectedText,
+      data: selectedText,
+      type: 'text',
       clickPos: pos,
     };
     show = false;

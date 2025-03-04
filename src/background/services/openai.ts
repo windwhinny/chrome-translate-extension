@@ -106,7 +106,7 @@ export class OpenAI {
   }
 
   async ocr(image: string) {
-    const resp = await this.completionsReq('qwen-vl-ocr', [{
+    const resp = await this.completionsReq(import.meta.env.VITE_OPENAI_VLM_MODEL, [{
       'role': 'user',
       content: [{
         "type": "image_url",
@@ -115,7 +115,7 @@ export class OpenAI {
         "max_pixels": 28 * 28 * 1280
       }, {
         type: 'text',
-        text: '请识别图片中的文字，并返回文字内容。'
+        text: '将图片里的内容翻译成中文，尽量保持原有格式。'
       }]
     }], true);
     return this.handleResponse(resp, true);
