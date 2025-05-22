@@ -30,7 +30,8 @@
       translation = data;
       const { text, done } = data || {}; 
       if (!text) return;
-      const chunk = text.slice(lastLength, text.length - 1);
+      let chunk = text.slice(lastLength, text.length - 1);
+      chunk = chunk.replace(/\\n/g, '\n'); // 替换掉换行符
       markdown.next(chunk);
       lastLength = text.length;
       if (done) {
@@ -124,9 +125,10 @@
 
   .originText {
     display: block;
+    white-space: pre-line; /* 保留换行符 */
   }
 
   .tts-word.hightlight {
     color: #4285f4;
   }
-</style> 
+</style>
