@@ -36,7 +36,7 @@
   <div class="word">{text}</div>
   <div class="phonetic">
     {translation.phoneticType}
-    [{translation.phonetic}]
+    {translation.phonetic}
     <AudioButton bind:playStatus={playStatus} onPlay={onPlay} />
   </div>
 </div>

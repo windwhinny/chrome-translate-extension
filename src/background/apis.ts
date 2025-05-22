@@ -11,7 +11,7 @@ const wordPrompt = `
 首先接收用户输入的{{查询单词}}：
 
 请按照以下顺序提供信息：
-1. 音标：使用国际音标(IPA)标注英式/美式发音，不包含音标开始和结束符号 []
+1. 音标：使用国际音标(IPA)标注英式/美式发音，需要包含音标开始和结束符号 []
 - 若存在多个发音变体，优先列出主要发音
 2. 释义：
 - 列出前3个最常用的词性及对应释义
@@ -96,7 +96,7 @@ async function handleWordTranslate(text: string) {
   });
   const content = JSON.parse(resp);
   const result = { isWord: true, ...content } as WordTranslation;
-  result.phonetic = result.phonetic?.replace(/^(\/|\[)|(\/|\])$/g, '');
+
   return result;
 }
 
