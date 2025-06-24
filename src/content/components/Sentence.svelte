@@ -23,7 +23,9 @@
   $effect(() => {
     if (!markdownContainer) return;
     if (!stream) return;
-    const markdown = createMarkdownStreamParser(markdownContainer)
+    const markdown = createMarkdownStreamParser(markdownContainer, {
+      waitTimeBeforeStreamCompletion: 'never',
+    });
     let lastLength = 0;
     stream.on((data, e) => {
       if (e) return error = e;
