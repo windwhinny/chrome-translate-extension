@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import streamJSONParse from './streamJSONParse';
+import streamJSONParser from './streamJSONParser';
 import { makeGenerator } from './lib.test';
 
 describe('streamJSONParse', () => {
@@ -28,7 +28,7 @@ describe('streamJSONParse', () => {
       luckyNumbers: [1, 2, 3, 4, 5]
     };
     const gen = makeGenerator(JSON.stringify(data));
-    const result = await streamJSONParse(gen())
+    const result = await streamJSONParser(gen())
     .wrap();
     expect(result).toEqual(data);
   });

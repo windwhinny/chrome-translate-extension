@@ -6,7 +6,7 @@ type DeepPartial<T> = T extends object ? {
   [P in keyof T]?: DeepPartial<T[P]>;
 } : T;
 
-export default function streamJSONParse<T>(stream: AsyncGenerator<string>) {
+export default function streamJSONParser<T>(stream: AsyncGenerator<string>) {
   const reader = new StreamReader(stream);
   const root = new JSONRoot('');
 

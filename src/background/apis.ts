@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import { getSender, registorBridgeFunction } from '../lib/bridge';
 import { Stream } from '../lib/stream';
-import streamJSONParse from './lib/streamJSONParse';
+import streamJSONParser from './lib/streamJSONParser';
 import { OpenAI, type Message } from './services/openai';
 import { OpenSpeech } from './services/openspeach';
 import type { SentenceTranslation, WordTranslation, TTSResponse, Frontend } from './types';
@@ -113,7 +113,7 @@ async function handleSentenceTranslate(text: string) {
   });
 
   const stream = new Stream<SentenceTranslation>(undefined, 'server');
-  streamJSONParse<SentenceTranslation>(resp).watch((data) => {
+  streamJSONParser<SentenceTranslation>(resp).watch((data) => {
     stream.send({
       ...data,
       isWord: false,
